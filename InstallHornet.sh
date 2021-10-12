@@ -1,49 +1,115 @@
-#!/bin/bash
-#
+// Instalacion Hornet en Raspberry Pi 4 (https://hornet.docs.iota.org/getting_started/hornet_apt_repository/)
+1. Instalar Ubuntu Server 21.04 64b (20.04 no bootea desde usb)
+	1.1 Usar RaspberryPiImage e instalar en SSD/Microsd
+2. Conectarse por SSH
+	2.2 Conectarse por ssh. Credenciales por default ubuntu/ubuntu
+3. Instalar Hornet
+	3.1 wget -qO - https://ppa.hornet.zone/pubkey.txt | sudo apt-key add -
+	3.2 sudo sh -c 'echo "deb http://ppa.hornet.zone stable main" >> /etc/apt/sources.list.d/hornet.list'
+	3.3 sudo apt update && sudo apt install hornet
+		(Si quiero desinstalar -> sudo apt-get purge --auto-remove hornet)		
+4. IP estatica
+	route -ne -> Saco dato de gateway
+		192.168.0.1
+		
+	cat /etc/resolv.conf -> DNS			
+		nameserver 127.0.0.53
+		options edns0 trust-ad
+		search fibertel.com.ar	
+		
+		// Ubuntu Server
+		//Obtengo nombre interface
+		ip link
+			eth0
+		
+		//Modifico archivo YAML 
+		//Ver nombre de archivo YAML, puede variar por ej.: 01-netcfg.yaml, 50-cloud-init.yaml, NN_interfaceName.yaml
+		ls /etc/netplan
+		
+		//Deshabilito "cloud-init"
+		sudo nano /etc/cloud/cloud.cfg.d/99-disable-network-config.cfg
+		
+		//Agrego en el archivo
+		network: {config: disabled}
+		
+		//Edito archivo respetando identacion
+		sudo nano /etc/netplan/50-cloud-init.yaml
+		
+		//Debe quedar como:
+		network:
+		  version: 2
+		  renderer: networkd
+		  ethernets:
+			ens3:
+			  dhcp4: no
+			  addresses:
+				- STATIC_IP/24
+			  gateway4: ROUTER_IP
+			  nameservers:
+				  addresses: [DNS_IPs, DNS_IPs]	
 
-echo "=================================================================="
-echo "Importing the public key that is used to sign the software release"
-wget -qO - https://ppa.hornet.zone/pubkey.txt | sudo apt-key add -
+		// Por ej.:
+network:
+    version: 2
+    renderer: networkd
+    ethernets:
+        eth0:
+            dhcp4: no
+            addresses:
+                - 192.168.0.16/24
+            gateway4: 192.168.0.1
+            nameservers:
+                addresses: [127.0.0.53,8.8.8.8, 8.8.4.4]
 
-echo "=================================================================="
-echo "Adding the Hornet APT repository to your APT sources"
-sh -c 'echo "deb http://ppa.hornet.zone stable main" >> /etc/apt/sources.list.d/hornet.list'
 
-echo "=================================================================="
-echo "Update apt package lists"
-apt -y update && apt -y upgrade
+		//Luego
+		sudo netplan apply
+		
+		//Verifico
+		ip addr show dev eth0
+		
+		//Extra: Ver script local con cron para DDNS (por ej. DuckDNS)
+	
+5. Abrir ports en router
+    15600 TCP - Gossip protocol port
+    14626 UDP - Autopeering port (optional)
+    14265 TCP - REST HTTP API port (optional)
+    8081 TCP - Dashboard (optional)
+    8091 TCP - Faucet website (optional)
+    1883 TCP - MQTT (optional)
+	
+6. Habilitar servicio	
+	6.1 sudo systemctl enable hornet.service
+	
+7. Acceso en red LAN al dashboard
+	Cambiar "dashboard":"bindAddress" a "0.0.0.0:8081" en /var/lib/hornet/config.json
 
-echo "=================================================================="
-echo "Install Hornet"
-apt install hornet
+8. Autopeering 
+	Agregar plugin "Autopeering" en "node":"enablePlugins":"Autopeering"
 
-echo "=================================================================="
-echo "Setting static IP"
-# Creates a backup
-cp /etc/netplan/50-cloud-init.yaml /etc/netplan/50-cloud-init.yaml.bk_`date +%Y%m%d%H%M`
 
-# Disable "cloud-init"
-"network: {config: disabled}" >> /etc/cloud/cloud.cfg.d/99-disable-network-config.cfg
 
-END_CONFIG=/etc/netplan/50-cloud-init.yaml
+Manejo basico, logs
+	* sudo service hornet start
+	* sudo systemctl stop hornet
+	* sudo systemctl restart hornet
+	* journalctl -fu hornet
+	
+	* sudo service hornet start && journalctl -fu hornet	
+	
+// Archivos de configuracion	
+	sudo nano /var/lib/hornet/peering.json
+	sudo nano /var/lib/hornet/config.json
+	
+//Path ejecutable:
+sudo /usr/bin/hornet --deleteAll
 
-generateAndApply() {
-    sudo netplan generate
-    sudo netplan apply
-}
+// Instalar nodejs y npm
+sudo apt install nodejs
+sudo apt install npm
 
-getInternetInfo() {
-    local INTERNET_INFO=$( ip r | grep default )
-    printf "%s" "$( echo $INTERNET_INFO | cut -f$1 -d' ' )"
-}
 
-#static information
-NAMESERVERS=("127.0.0.53" "8.8.8.8" "8.8.4.4")
-NETWORK_MANAGER="networkd"
-
-# information that varies
-IP="$( ip r | grep kernel | cut -f9 -d' ' )"
-GATEWAY="$( getInternetInfo 3 )"
+sudo bash -c "bash <(curl -s https://raw.githubusercontent.com/adreiling/hornet_raspberry_install/main/InstallHornet.sh)"
 DEVICE_NAME="$( getInternetInfo 5 )"
 METHOD="$( getInternetInfo 7 )"
 PREFIX="$( ip r | grep kernel | cut -f1 -d' ' | cut -f2 -d'/' )"
