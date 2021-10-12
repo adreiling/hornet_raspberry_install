@@ -10,8 +10,12 @@ echo "Adding the Hornet APT repository to your APT sources"
 sh -c 'echo "deb http://ppa.hornet.zone stable main" >> /etc/apt/sources.list.d/hornet.list'
 
 echo "=================================================================="
-echo "Update apt package lists and install Hornet"
-apt update && sudo apt install hornet
+echo "Update apt package lists"
+apt -y update && apt -y upgrade
+
+echo "=================================================================="
+echo "Install Hornet"
+apt install hornet
 
 echo "=================================================================="
 echo "Setting static IP"
@@ -44,6 +48,44 @@ DEVICE_NAME="$( getInternetInfo 5 )"
 METHOD="$( getInternetInfo 7 )"
 PREFIX="$( ip r | grep kernel | cut -f1 -d' ' | cut -f2 -d'/' )"
 
+createStaticYAML() {
+   local YAML="network:\n"
+    YAML+="    version: 2\n"
+    YAML+="    renderer: $NETWORK_MANAGER\n"
+    YAML+="    ethernets:\n"
+    YAML+="        $DEVICE_NAME:\n"
+    YAML+="            dhcp4: no\n"
+    YAML+="            addresses: [$IP/$PREFIX]\n"
+    YAML+="            gateway4: $GATEWAY\n"
+    YAML+="            nameservers:\n"
+    YAML+="                addresses: [${NAMESERVERS[0]},${NAMESERVERS[1]},${NAMESERVERS[2]}]"
+    printf "%s" "$YAML"
+}
+
+clearConfigs() {
+    [ -f $END_CONFIG ] && sudo rm $END_CONFIG
+}
+
+setYAML() {
+    sudo echo -e "$(createStaticYAML)" > $END_CONFIG
+}
+
+clearConfigs
+setYAML
+generateAndApply
+restartNetwork
+
+echo "=================================================================="
+echo "Enable the systemd service"
+systemctl enable hornet.service
+
+echo "=================================================================="
+echo "Open dashboard to LAN"
+sed -i 's/localhost:8081/0.0.0.0:8081/g' /var/lib/hornet/config*.json
+
+echo "=================================================================="
+echo "Starting Hornet"
+service hornet start && journalctl -fu hornet
 createStaticYAML() {
    local YAML="network:\n"
     YAML+="    version: 2\n"
