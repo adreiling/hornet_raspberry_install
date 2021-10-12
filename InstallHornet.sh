@@ -23,7 +23,7 @@ echo "Setting static IP"
 cp /etc/netplan/50-cloud-init.yaml /etc/netplan/50-cloud-init.yaml.bk_`date +%Y%m%d%H%M`
 
 # Disable "cloud-init"
-"network: {config: disabled}" >> /etc/cloud/cloud.cfg.d/99-disable-network-config.cfg
+echo "network: {config: disabled}" >> /etc/cloud/cloud.cfg.d/99-disable-network-config.cfg
 
 END_CONFIG=/etc/netplan/50-cloud-init.yaml
 
@@ -73,7 +73,6 @@ setYAML() {
 clearConfigs
 setYAML
 generateAndApply
-restartNetwork
 
 echo "=================================================================="
 echo "Enable the systemd service"
