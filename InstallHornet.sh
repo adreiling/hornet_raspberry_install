@@ -83,5 +83,9 @@ echo "Open dashboard to LAN"
 sed -i 's/localhost:8081/0.0.0.0:8081/g' /var/lib/hornet/config*.json
 
 echo "=================================================================="
+echo "Enable Autopeering"
+sed -i 's/\"Spammer\"/\"Spammer\", \"Autopeering\"/g' /var/lib/hornet/config.json
+
+echo "=================================================================="
 echo "Starting Hornet"
 service hornet start && journalctl -fu hornet
