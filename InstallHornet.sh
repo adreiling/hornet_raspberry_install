@@ -83,6 +83,11 @@ echo "Open dashboard to LAN"
 sed -i 's/localhost:8081/0.0.0.0:8081/g' /var/lib/hornet/config*.json
 
 echo "=================================================================="
+echo "Setting dashboard credentials"
+sed -i 's/\"passwordHash\": \"0000000000000000000000000000000000000000000000000000000000000000\"/\"passwordHash\": \"ddcb3027a9a18b0527c236588369156842efb451c214b534c2060eb69199d5ca\"/g' /var/lib/hornet/config.json
+sed -i 's/\"passwordSalt\": \"0000000000000000000000000000000000000000000000000000000000000000\"/\"passwordSalt\": \"bc0213d0fe6c6350e556b6ee9ddb62f60743f4653ded73ee61e3fd49a6fe2e50\"/g' /var/lib/hornet/config.json
+
+echo "=================================================================="
 echo "Enable Autopeering"
 sed -i 's/\"Spammer\"/\"Spammer\", \"Autopeering\"/g' /var/lib/hornet/config.json
 
