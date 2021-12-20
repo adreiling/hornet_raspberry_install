@@ -19,4 +19,5 @@ git clone https://github.com/iot2tangle/Streams-http-gateway.git
 
 echo "=================================================================="
 echo "Run the streams-gateway"
+cd Streams-http-gateway
 cargo run --release
