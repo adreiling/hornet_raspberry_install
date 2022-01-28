@@ -92,5 +92,15 @@ echo "Enable Autopeering"
 sed -i 's/\"Spammer\"/\"Spammer\", \"Autopeering\"/g' /var/lib/hornet/config.json
 
 echo "=================================================================="
+echo "Fix Journal"
+sed -i 's/\#Storage=auto/Storage=persistent/g' /etc/systemd/journald.conf
+sed -i 's/\#Compress=yes/Compress=yes/g' /etc/systemd/journald.conf
+sed -i 's/\#RateLimitBurst=10000/RateLimitBurst=10000/g' /etc/systemd/journald.conf
+sed -i 's/\#SystemMaxUse=/SystemMaxUse=600M/g' /etc/systemd/journald.conf
+sed -i 's/\#SystemKeepFree=/SystemKeepFree=5.6G/g' /etc/systemd/journald.conf
+sed -i 's/\#SystemMaxFileSize=/SystemMaxFileSize=1G/g' /etc/systemd/journald.conf
+systemctl restart systemd-journald
+
+echo "=================================================================="
 echo "Starting Hornet"
 service hornet start && journalctl -fu hornet
